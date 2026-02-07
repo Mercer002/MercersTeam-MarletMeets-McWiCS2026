@@ -40,28 +40,25 @@ def execute_query(query, params=None, commit=False, fetch_one=False, fetch_all=F
     try:
         cursor.execute(query, params)
         
+        # 1. Capture results FIRST (if requested)
+        result = None
+        if fetch_one:
+            result = cursor.fetchone()
+        elif fetch_all:
+            result = cursor.fetchall()
+            
+        # 2. Commit the changes SECOND
         if commit:
             conn.commit()
-            return None  # Commit actions usually don't return data (unless RETURNING is used)
             
-        if fetch_one:
-            return cursor.fetchone()
-            
-        if fetch_all:
-            return cursor.fetchall()
-            
-        return None
+        return result
         
     except Exception as e:
         print(f"❌ Database Error: {e}")
         return None
-        
     finally:
-        # 1. Close the cursor
         if cursor:
             cursor.close()
-            
-        # 2. Put the connection back in the pool 
         if conn:
             connection_pool.putconn(conn)
 
@@ -119,6 +116,29 @@ def create_senior(data):
         data.get('longitude'),
         data.get('needs', []),     # Seniors have 'needs', not 'skills'
         data.get('languages', [])
+    )
+    
+    result = execute_query(query, params, commit=True, fetch_one=True)
+    return result
+
+def create_session(data):
+    query = """
+    INSERT INTO sessions (
+        senior_id, 
+        student_id, 
+        task_type, 
+        description,
+        status
+    )
+    VALUES (%s, %s, %s, %s, 'scheduled')
+    RETURNING session_id, status;
+    """
+    
+    params = (
+        data.get('senior_id'),
+        data.get('student_id'),
+        data.get('task_type'),
+        data.get('description')
     )
     
     result = execute_query(query, params, commit=True, fetch_one=True)
