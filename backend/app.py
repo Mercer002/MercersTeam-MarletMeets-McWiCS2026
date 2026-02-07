@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db import execute_query, create_student, create_senior
+from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students
+from matching import MatchingEngine
 
 app = Flask(__name__)
 CORS(app)
@@ -77,6 +78,27 @@ def register_senior():
         if "duplicate key" in str(e):
             return jsonify({"error": "Email already registered"}), 409
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/matches/<int:senior_id>', methods=['GET'])
+def get_matches(senior_id):
+    # 1. Get the Senior
+    senior = get_senior_by_id(senior_id)
+    if not senior:
+        return jsonify({"error": "Senior not found"}), 404
+
+    # 2. Get all Students
+    students = get_all_students()
+    if not students:
+        return jsonify({"message": "No students available"}), 200
+
+    # 3. Run the Matching Engine
+    engine = MatchingEngine()
+    matches = engine.find_matches(senior, students)
+
+    return jsonify({
+        "senior": senior['first_name'],
+        "matches": matches
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
