@@ -1,3 +1,16 @@
+#.env contains local secrets
+.env
+
+# Python virtualenv
+.venv/
+venv/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
