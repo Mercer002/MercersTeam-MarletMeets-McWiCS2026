@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createSenior } from "../services/api";
+import AddressAutocomplete from "../components/AddressAutocomplete";
 
 const NEEDS = ["tech_help", "groceries", "transport", "companionship", "household_help"];
 const LANGUAGES = ["English", "French", "Mandarin", "Arabic", "Spanish"];
@@ -8,8 +9,11 @@ function SeniorSignup() {
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
+    email: "",
     phone: "",
     address: "",
+    latitude: null,
+    longitude: null,
     needs: [],
     language: "",
   });
@@ -35,9 +39,12 @@ function SeniorSignup() {
 
   const validate = () => {
     const nextErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!formData.first_name.trim()) nextErrors.first_name = "First name is required.";
     if (!formData.last_name.trim()) nextErrors.last_name = "Last name is required.";
+    if (!formData.email.trim()) nextErrors.email = "Email is required.";
+    if (formData.email && !emailRegex.test(formData.email)) nextErrors.email = "Enter a valid email.";
     if (!formData.phone.trim()) nextErrors.phone = "Phone is required.";
     if (!formData.address.trim()) nextErrors.address = "Address is required.";
     if (formData.needs.length === 0) nextErrors.needs = "Select at least one need.";
@@ -51,8 +58,11 @@ function SeniorSignup() {
     setFormData({
       first_name: "",
       last_name: "",
+      email: "",
       phone: "",
       address: "",
+      latitude: null,
+      longitude: null,
       needs: [],
       language: "",
     });
@@ -68,10 +78,13 @@ function SeniorSignup() {
       const payload = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
+        email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         address: formData.address.trim(),
         needs: formData.needs,
-        language: formData.language,
+        languages: formData.language ? [formData.language] : [],
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       };
 
       const response = await createSenior(payload);
@@ -146,6 +159,21 @@ function SeniorSignup() {
                   </div>
 
                   <div className="col-md-6">
+                    <label htmlFor="email" className="form-label">
+                      Email *
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      className={`form-control ${errors.email ? "is-invalid" : ""}`}
+                      value={formData.email}
+                      onChange={onChange}
+                    />
+                    {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                  </div>
+
+                  <div className="col-md-6">
                     <label htmlFor="language" className="form-label">
                       Preferred Language *
                     </label>
@@ -170,12 +198,24 @@ function SeniorSignup() {
                     <label htmlFor="address" className="form-label">
                       Address *
                     </label>
-                    <input
+                    <AddressAutocomplete
                       id="address"
                       name="address"
                       className={`form-control ${errors.address ? "is-invalid" : ""}`}
                       value={formData.address}
                       onChange={onChange}
+                      onSelect={(formatted, place) => {
+                        const lat = place?.geometry?.location?.lat?.();
+                        const lng = place?.geometry?.location?.lng?.();
+                        setFormData((prev) => ({
+                          ...prev,
+                          address: formatted,
+                          latitude: lat ?? prev.latitude,
+                          longitude: lng ?? prev.longitude,
+                        }));
+                      }}
+                      placeholder="Start typing an address"
+                      error={errors.address}
                     />
                     {errors.address && <div className="invalid-feedback">{errors.address}</div>}
                   </div>

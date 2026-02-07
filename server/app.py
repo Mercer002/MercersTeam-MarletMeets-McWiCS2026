@@ -11,7 +11,7 @@ from decimal import Decimal
 from datetime import date, datetime
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_cors import CORS
@@ -68,6 +68,17 @@ def fetch_one(query, params=None):
             cur.execute(query, params)
             row = cur.fetchone()
             return serialize_row(row) if row else None
+
+
+@app.get("/api/health")
+def health_check():
+    try:
+        check = fetch_one("SELECT 1 AS ok;")
+        if check and check.get("ok") == 1:
+            return jsonify({"status": "healthy", "database": "connected"}), 200
+    except Exception as exc:
+        return jsonify({"status": "unhealthy", "error": str(exc)}), 500
+    return jsonify({"status": "unhealthy"}), 500
 
 
 @app.get("/api/dashboard")
@@ -131,6 +142,100 @@ def dashboard():
             "seniors": seniors,
         }
     )
+
+
+@app.post("/api/students")
+def register_student():
+    payload = request.get_json(silent=True) or {}
+
+    required_fields = ["email", "first_name", "last_name", "phone", "address"]
+    missing = [field for field in required_fields if not payload.get(field)]
+    if missing:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    email = payload.get("email").strip().lower()
+    existing = fetch_one("SELECT student_id FROM students WHERE mcgill_email = %s;", (email,))
+    if existing:
+        return jsonify({"error": "Email already registered."}), 409
+
+    skills = payload.get("skills") or []
+    languages = payload.get("languages") or []
+    latitude = payload.get("latitude")
+    longitude = payload.get("longitude")
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO students
+                    (mcgill_email, first_name, last_name, phone, address, latitude, longitude, skills, languages)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING student_id;
+                """,
+                (
+                    email,
+                    payload.get("first_name"),
+                    payload.get("last_name"),
+                    payload.get("phone"),
+                    payload.get("address"),
+                    latitude,
+                    longitude,
+                    skills,
+                    languages,
+                ),
+            )
+            student_id = cur.fetchone()[0]
+            conn.commit()
+
+    return jsonify({"message": "Student registered successfully.", "student_id": student_id}), 201
+
+
+@app.post("/api/seniors")
+def register_senior():
+    payload = request.get_json(silent=True) or {}
+
+    required_fields = ["email", "first_name", "last_name", "phone", "address"]
+    missing = [field for field in required_fields if not payload.get(field)]
+    if missing:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    email = payload.get("email").strip().lower()
+    existing = fetch_one("SELECT senior_id FROM seniors WHERE email = %s;", (email,))
+    if existing:
+        return jsonify({"error": "Email already registered."}), 409
+
+    needs = payload.get("needs") or []
+    languages = payload.get("languages") or []
+    latitude = payload.get("latitude")
+    longitude = payload.get("longitude")
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO seniors
+                    (email, first_name, last_name, phone, address, latitude, longitude, needs, languages)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING senior_id;
+                """,
+                (
+                    email,
+                    payload.get("first_name"),
+                    payload.get("last_name"),
+                    payload.get("phone"),
+                    payload.get("address"),
+                    latitude,
+                    longitude,
+                    needs,
+                    languages,
+                ),
+            )
+            senior_id = cur.fetchone()[0]
+            conn.commit()
+
+    return jsonify({"message": "Senior registered successfully.", "senior_id": senior_id}), 201
 
 
 @app.get("/api/seniors")
