@@ -35,4 +35,9 @@ export async function createSession(payload) {
   return response.data;
 }
 
+export async function fetchDashboard() {
+  const response = await api.get("/dashboard");
+  return response.data;
+}
+
 export default api;

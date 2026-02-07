@@ -258,7 +258,8 @@ def dashboard():
         SELECT
             (SELECT COUNT(*) FROM students) AS total_students,
             (SELECT COUNT(*) FROM seniors) AS total_seniors,
-            (SELECT COUNT(*) FROM sessions) AS total_sessions;
+            (SELECT COUNT(*) FROM sessions) AS total_sessions,
+            (SELECT COALESCE(SUM(duration_minutes), 0) FROM sessions) AS total_minutes;
         """,
         fetch_one=True,
     )
