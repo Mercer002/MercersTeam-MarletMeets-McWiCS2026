@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db import execute_query, create_student
+from db import execute_query, create_student, create_senior
 
 app = Flask(__name__)
 CORS(app)
@@ -46,6 +46,31 @@ def register_student():
             "message": "Student registered successfully!", 
             "student_id": new_student['student_id'],
             "student": new_student
+        }), 201
+        
+    except Exception as e:
+        if "duplicate key" in str(e):
+            return jsonify({"error": "Email already registered"}), 409
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/seniors', methods=['POST'])
+def register_senior():
+    data = request.get_json()
+    
+    # 1. Validation
+    required_fields = ['email', 'first_name', 'last_name', 'latitude', 'longitude']
+    missing = [field for field in required_fields if field not in data]
+    
+    if missing:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    # 2. Save to DB
+    try:
+        new_senior = create_senior(data)
+        return jsonify({
+            "message": "Senior registered successfully!", 
+            "senior_id": new_senior['senior_id'],
+            "senior": new_senior
         }), 201
         
     except Exception as e:
