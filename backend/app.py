@@ -9,6 +9,11 @@ from flask.json.provider import DefaultJSONProvider
 from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students
 from matching import MatchingEngine
 
+try:
+    import googlemaps
+except Exception:
+    googlemaps = None
+
 app = Flask(__name__)
 CORS(app)
 
@@ -23,6 +28,30 @@ class CustomJSONProvider(DefaultJSONProvider):
 
 # Tell Flask to use our custom provider
 app.json = CustomJSONProvider(app)
+
+
+def geocode_address(address):
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        return None, None, "Missing GOOGLE_MAPS_API_KEY"
+    if googlemaps is None:
+        return None, None, "googlemaps library not installed"
+
+    client = googlemaps.Client(key=api_key)
+    try:
+        results = client.geocode(address)
+    except Exception as exc:
+        return None, None, f"Geocoding error: {exc}"
+
+    if not results:
+        return None, None, "No geocoding results"
+
+    location = results[0].get("geometry", {}).get("location", {})
+    lat = location.get("lat")
+    lng = location.get("lng")
+    if lat is None or lng is None:
+        return None, None, "Geocoding returned no coordinates"
+    return lat, lng, None
 
 
 def serialize_row(row):
@@ -71,6 +100,14 @@ def register_student():
     data['email'] = data.get('email', '').strip().lower()
 
     try:
+        if data.get("latitude") is None or data.get("longitude") is None:
+            lat, lng, geo_err = geocode_address(data.get("address"))
+            if lat is not None and lng is not None:
+                data["latitude"] = lat
+                data["longitude"] = lng
+            elif geo_err:
+                return jsonify({"error": f"Geocoding failed: {geo_err}"}), 400
+
         existing = execute_query(
             "SELECT student_id FROM students WHERE mcgill_email = %s;",
             (data['email'],),
@@ -103,6 +140,14 @@ def register_senior():
     data['email'] = data.get('email', '').strip().lower()
 
     try:
+        if data.get("latitude") is None or data.get("longitude") is None:
+            lat, lng, geo_err = geocode_address(data.get("address"))
+            if lat is not None and lng is not None:
+                data["latitude"] = lat
+                data["longitude"] = lng
+            elif geo_err:
+                return jsonify({"error": f"Geocoding failed: {geo_err}"}), 400
+
         existing = execute_query(
             "SELECT senior_id FROM seniors WHERE email = %s;",
             (data['email'],),
