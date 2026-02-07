@@ -1,13 +1,13 @@
+import os
 from datetime import date, datetime
 from decimal import Decimal
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students, create_session, get_dashboard_data
-from matching import MatchingEngine
 from flask.json.provider import DefaultJSONProvider
-from decimal import Decimal
-from datetime import date, datetime
+
+from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students
+from matching import MatchingEngine
 
 app = Flask(__name__)
 CORS(app)
@@ -23,6 +23,16 @@ class CustomJSONProvider(DefaultJSONProvider):
 
 # Tell Flask to use our custom provider
 app.json = CustomJSONProvider(app)
+
+
+def serialize_row(row):
+    if row is None:
+        return None
+    return {k: row.get(k) for k in row.keys()}
+
+
+def serialize_rows(rows):
+    return [serialize_row(r) for r in (rows or [])]
 
 @app.route('/')
 def home():
@@ -197,15 +207,6 @@ def create_session_endpoint():
         return jsonify({"error": str(e)}), 500
     
 @app.route('/api/dashboard', methods=['GET'])
-def get_dashboard():
-    try:
-        data = get_dashboard_data()
-        return jsonify(data), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/dashboard', methods=['GET'])
 def dashboard():
     totals = execute_query(
         """
@@ -271,4 +272,5 @@ def dashboard():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.getenv("PORT", "5001"))
+    app.run(debug=True, port=port)
