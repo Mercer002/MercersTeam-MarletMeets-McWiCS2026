@@ -6,6 +6,7 @@ Run:
 """
 
 import os
+import sys
 from decimal import Decimal
 from datetime import date, datetime
 
@@ -13,6 +14,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from flask_cors import CORS
 
 load_dotenv()
 
@@ -25,6 +27,16 @@ PG = {
 }
 
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+if BACKEND_DIR not in sys.path:
+    sys.path.append(BACKEND_DIR)
+
+try:
+    from matching import MatchingEngine
+except Exception:
+    MatchingEngine = None
 
 
 def get_conn():
@@ -119,6 +131,98 @@ def dashboard():
             "seniors": seniors,
         }
     )
+
+
+@app.get("/api/seniors")
+def list_seniors():
+    seniors = fetch_all(
+        """
+        SELECT senior_id, first_name, last_name, needs, languages, latitude, longitude
+        FROM seniors
+        ORDER BY senior_id;
+        """
+    )
+    return jsonify({"seniors": seniors})
+
+
+@app.get("/api/matches/<int:senior_id>")
+def match_senior(senior_id):
+    if MatchingEngine is None:
+        return jsonify({"error": "Matching engine not available."}), 500
+
+    senior = fetch_one(
+        """
+        SELECT senior_id, first_name, last_name, needs, languages, latitude, longitude
+        FROM seniors
+        WHERE senior_id = %s;
+        """,
+        (senior_id,),
+    )
+    if not senior:
+        return jsonify({"error": "Senior not found."}), 404
+
+    students = fetch_all(
+        """
+        SELECT student_id, first_name, last_name, skills, languages, latitude, longitude
+        FROM students
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        ORDER BY student_id;
+        """
+    )
+    if not students:
+        return jsonify({"senior": senior, "matches": []})
+
+    engine = MatchingEngine()
+    matches = engine.find_matches(senior, students, limit=3)
+    return jsonify({"senior": senior, "matches": matches})
+
+
+@app.post("/api/sessions")
+def create_session():
+    from flask import request
+
+    payload = request.get_json(silent=True) or {}
+    student_id = payload.get("student_id")
+    senior_id = payload.get("senior_id")
+
+    if not student_id or not senior_id:
+        return jsonify({"error": "student_id and senior_id are required."}), 400
+
+    duration_minutes = payload.get("duration_minutes", 60)
+    status = payload.get("status", "scheduled")
+    notes = payload.get("notes")
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT latitude, longitude
+                FROM seniors
+                WHERE senior_id = %s;
+                """,
+                (senior_id,),
+            )
+            senior_coords = cur.fetchone()
+            if not senior_coords:
+                return jsonify({"error": "Senior not found."}), 404
+
+            latitude = payload.get("latitude", senior_coords[0])
+            longitude = payload.get("longitude", senior_coords[1])
+
+            cur.execute(
+                """
+                INSERT INTO sessions
+                    (student_id, senior_id, session_time, duration_minutes, status, latitude, longitude, notes)
+                VALUES
+                    (%s, %s, NOW(), %s, %s, %s, %s, %s)
+                RETURNING session_id;
+                """,
+                (student_id, senior_id, duration_minutes, status, latitude, longitude, notes),
+            )
+            session_id = cur.fetchone()[0]
+            conn.commit()
+
+    return jsonify({"session_id": session_id, "status": status})
 
 
 if __name__ == "__main__":

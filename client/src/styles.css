@@ -44,6 +44,83 @@ body {
   padding: 1.5rem;
 }
 
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.admin-list {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.admin-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.admin-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-meta {
+  margin: 0.35rem 0 0;
+  color: #475569;
+}
+
+.btn-primary,
+.btn-secondary {
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.matches {
+  margin-top: 1rem;
+}
+
+.match-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.match-table th,
+.match-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.match-table th {
+  color: #1e293b;
+  background: #f8fafc;
+}
+
 .status {
   margin-top: 0.75rem;
   font-weight: 600;
