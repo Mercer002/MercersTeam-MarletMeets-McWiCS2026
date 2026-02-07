@@ -88,3 +88,35 @@ def create_student(data):
     
     result = execute_query(query, params, commit=True, fetch_one=True)
     return result
+
+def create_senior(data):
+    query = """
+    INSERT INTO seniors (
+        first_name, 
+        last_name, 
+        email, 
+        phone, 
+        address, 
+        latitude, 
+        longitude, 
+        needs, 
+        languages
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    RETURNING senior_id, first_name, email;
+    """
+    
+    params = (
+        data.get('first_name'),
+        data.get('last_name'),
+        data.get('email'),
+        data.get('phone'),
+        data.get('address'),
+        data.get('latitude'),
+        data.get('longitude'),
+        data.get('needs', []),     # Seniors have 'needs', not 'skills'
+        data.get('languages', [])
+    )
+    
+    result = execute_query(query, params, commit=True, fetch_one=True)
+    return result
