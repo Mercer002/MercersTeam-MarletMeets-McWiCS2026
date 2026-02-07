@@ -1,3 +1,16 @@
+#.env contains local secrets
+.env
+
+# Python virtualenv
+.venv/
+venv/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -206,6 +219,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+<<<<<<< codex/ticket-2-4-senior-signup
 client/node_modules/
 client/.DS_Store
 .DS_Store
@@ -221,3 +235,21 @@ client/build/
 client/.DS_Store
 .DS_Store
 client/.env
+=======
+# Ignore Environment Variables (Security Risk!)
+.env
+.env.local
+.env.*
+
+# Ignore Python specific
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Ignore Node/React specific (Huge folders!)
+node_modules/
+dist/
+build/
+.DS_Store
+>>>>>>> main
