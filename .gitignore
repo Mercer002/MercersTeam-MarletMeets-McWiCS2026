@@ -219,6 +219,23 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+<<<<<<< codex/ticket-2-4-senior-signup
+client/node_modules/
+client/.DS_Store
+.DS_Store
+client/.env
+
+client/node_modules/
+client/.DS_Store
+.DS_Store
+client/.env
+
+client/node_modules/
+client/build/
+client/.DS_Store
+.DS_Store
+client/.env
+=======
 # Ignore Environment Variables (Security Risk!)
 .env
 .env.local
@@ -235,3 +252,4 @@ node_modules/
 dist/
 build/
 .DS_Store
+>>>>>>> main
