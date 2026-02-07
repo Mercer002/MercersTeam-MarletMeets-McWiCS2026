@@ -2,3 +2,4 @@ python-dotenv==1.0.0
 psycopg2-binary==2.9.7
 Flask==2.3.3
 Flask-Cors==4.0.0
+googlemaps==4.10.0
