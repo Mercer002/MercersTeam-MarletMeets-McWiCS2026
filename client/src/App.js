@@ -1,6 +1,6 @@
 import { Link, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
-import Signup from "./pages/Signup";
+import StudentSignup from "./pages/StudentSignup";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
@@ -10,7 +10,7 @@ function App() {
         <h1>MarletMeets</h1>
         <nav>
           <Link to="/">Home</Link>
-          <Link to="/signup">Signup</Link>
+          <Link to="/signup">Student Signup</Link>
           <Link to="/dashboard">Dashboard</Link>
         </nav>
       </header>
@@ -18,7 +18,7 @@ function App() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/signup" element={<StudentSignup />} />
           <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </main>

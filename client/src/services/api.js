@@ -10,4 +10,9 @@ export async function checkHealth() {
   return response.data;
 }
 
+export async function createStudent(payload) {
+  const response = await api.post("/students", payload);
+  return response.data;
+}
+
 export default api;
