@@ -25,9 +25,10 @@ body {
   color: white;
 }
 
-.top-nav nav {
+.top-nav .nav-links {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .top-nav a {
@@ -38,6 +39,33 @@ body {
 
 .top-nav a:hover {
   color: white;
+}
+
+.top-nav a.active {
+  color: white;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand__logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  padding: 2px;
+}
+
+.brand__text {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
 }
 
 .main-content {
