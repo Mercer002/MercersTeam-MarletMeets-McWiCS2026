@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import StudentSignup from "./pages/StudentSignup";
 import Dashboard from "./pages/Dashboard";
 import MapTest from "./MapTest";
+import AdminPanel from "./pages/AdminPanel";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Link to="/dashboard">Dashboard</Link>
           <Link to="/map-test">Map Test</Link>
 
+          <Link to="/admin">Admin</Link>
         </nav>
       </header>
 
@@ -24,6 +26,7 @@ function App() {
           <Route path="/signup" element={<StudentSignup />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/map-test" element={<MapTest />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Routes>
       </main>
     </div>
