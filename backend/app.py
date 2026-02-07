@@ -1,10 +1,25 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students, create_session
+from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students, create_session, get_dashboard_data
 from matching import MatchingEngine
+from flask.json.provider import DefaultJSONProvider
+from decimal import Decimal
+from datetime import date, datetime
 
 app = Flask(__name__)
 CORS(app)
+
+# Create a custom JSON provider that knows how to handle Decimals and Dates
+class CustomJSONProvider(DefaultJSONProvider):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)  # Convert Decimal to float
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()  # Convert Date to String
+        return super().default(obj)
+
+# Tell Flask to use our custom provider
+app.json = CustomJSONProvider(app)
 
 @app.route('/')
 def home():
@@ -121,6 +136,14 @@ def create_session_endpoint():
             "status": new_session['status']
         }), 201
         
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/dashboard', methods=['GET'])
+def get_dashboard():
+    try:
+        data = get_dashboard_data()
+        return jsonify(data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

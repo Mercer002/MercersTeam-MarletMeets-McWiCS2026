@@ -152,3 +152,68 @@ def get_senior_by_id(senior_id):
 def get_all_students():
     query = "SELECT * FROM students;"
     return execute_query(query, fetch_all=True)
+
+def get_dashboard_data():
+    # 1. Totals (The Counters)
+    query_totals = """
+    SELECT
+        (SELECT COUNT(*) FROM students) AS total_students,
+        (SELECT COUNT(*) FROM seniors) AS total_seniors,
+        (SELECT COUNT(*) FROM sessions) AS total_sessions;
+    """
+    totals = execute_query(query_totals, fetch_one=True)
+
+    # 2. Recent Sessions (For the Activity Feed)
+    # Note: We use 'description' because that is what we named the column in Ticket 4.3
+    # We join with students/seniors to get their names.
+    query_recent = """
+    SELECT
+        s.session_id,
+        s.status,
+        s.task_type,
+        s.description,
+        s.session_time,
+        st.first_name AS student_first_name,
+        st.last_name AS student_last_name,
+        sn.first_name AS senior_first_name,
+        sn.last_name AS senior_last_name
+    FROM sessions s
+    LEFT JOIN students st ON s.student_id = st.student_id
+    LEFT JOIN seniors sn ON s.senior_id = sn.senior_id
+    ORDER BY s.created_at DESC
+    LIMIT 5;
+    """
+    recent_sessions = execute_query(query_recent, fetch_all=True)
+
+    # 3. Map Data (Students & Seniors with location)
+    students = execute_query(
+        "SELECT student_id, first_name, last_name, latitude, longitude FROM students WHERE latitude IS NOT NULL;", 
+        fetch_all=True
+    )
+    
+    seniors = execute_query(
+        "SELECT senior_id, first_name, last_name, latitude, longitude FROM seniors WHERE latitude IS NOT NULL;", 
+        fetch_all=True
+    )
+    
+    # 4. Map Lines (Active Sessions)
+    # We fetch the coordinates of both people to draw the green lines
+    query_map_sessions = """
+    SELECT 
+        s.session_id,
+        st.latitude as student_lat, st.longitude as student_lng,
+        sn.latitude as senior_lat, sn.longitude as senior_lng
+    FROM sessions s
+    JOIN students st ON s.student_id = st.student_id
+    JOIN seniors sn ON s.senior_id = sn.senior_id
+    WHERE s.status IN ('scheduled', 'active');
+    """
+    map_sessions = execute_query(query_map_sessions, fetch_all=True)
+    
+    return {
+        "totals": totals,
+        "recent_sessions": recent_sessions,
+        "students": students,
+        "seniors": seniors,
+        "sessions": map_sessions 
+    }

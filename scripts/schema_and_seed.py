@@ -61,16 +61,18 @@ SCHEMA_SQL = [
     """,
     # sessions
     """
-    CREATE TABLE IF NOT EXISTS sessions (
+    DROP TABLE IF EXISTS sessions;
+    CREATE TABLE sessions (
         session_id SERIAL PRIMARY KEY,
         student_id INT REFERENCES students(student_id) ON DELETE SET NULL,
         senior_id INT REFERENCES seniors(senior_id) ON DELETE SET NULL,
-        session_time TIMESTAMP,
+        task_type VARCHAR(50) NOT NULL,    -- NEW: e.g., 'Groceries', 'Tech Help'
+        description TEXT,                  -- NEW: Details about the task
+        status VARCHAR(50) DEFAULT 'scheduled',
+        session_time TIMESTAMP,            -- Can be null for now
         duration_minutes INT,
-        status VARCHAR(50),
         latitude DECIMAL(10,8),
         longitude DECIMAL(11,8),
-        notes TEXT,
         created_at TIMESTAMP DEFAULT NOW()
     );
     """,
@@ -105,11 +107,21 @@ SAMPLE_SQL = [
     """,
     # sample sessions
     """
-    INSERT INTO sessions (student_id, senior_id, session_time, duration_minutes, status, latitude, longitude, notes)
+    INSERT INTO sessions (
+        student_id, 
+        senior_id, 
+        task_type,      -- NEW FIELD
+        description,    -- REPLACES 'notes'
+        status, 
+        session_time, 
+        duration_minutes, 
+        latitude, 
+        longitude
+    )
     VALUES
-      ( (SELECT student_id FROM students WHERE mcgill_email='alice@mcgill.ca'), (SELECT senior_id FROM seniors WHERE email='mrs.jones@example.com'), NOW() + INTERVAL '2 days', 60, 'scheduled', 45.4980, -73.5778, 'Grocery run'),
-      ( (SELECT student_id FROM students WHERE mcgill_email='bob@mcgill.ca'), (SELECT senior_id FROM seniors WHERE email='mr.smith@example.com'), NOW() + INTERVAL '3 days', 45, 'scheduled', 45.4965, -73.5795, 'Walk in the park')
-    ;
+    (1, 1, 'Groceries', 'Help carrying heavy bags from Metro', 'completed', NOW() - INTERVAL '2 days', 60, 45.5017, -73.5673),
+    (2, 2, 'Tech Support', 'Fixing printer connection', 'scheduled', NOW() + INTERVAL '1 day', 45, 45.5088, -73.5540),
+    (1, 3, 'Companionship', 'Afternoon tea and chat', 'pending', NOW() + INTERVAL '3 days', 90, 45.4949, -73.5779);
     """,
 ]
 
