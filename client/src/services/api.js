@@ -15,6 +15,11 @@ export async function createStudent(payload) {
   return response.data;
 }
 
+export async function createSenior(payload) {
+  const response = await api.post("/seniors", payload);
+  return response.data;
+}
+
 export async function listSeniors() {
   const response = await api.get("/seniors");
   return response.data;

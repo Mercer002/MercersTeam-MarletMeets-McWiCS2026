@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createStudent } from "../services/api";
+import AddressAutocomplete from "../components/AddressAutocomplete";
 
 const SKILLS = ["tech_support", "groceries", "companionship", "errands", "translation"];
 const LANGUAGES = ["English", "French", "Mandarin", "Arabic", "Spanish"];
@@ -11,6 +12,8 @@ function StudentSignup() {
     email: "",
     phone: "",
     address: "",
+    latitude: null,
+    longitude: null,
     skills: [],
     languages: [],
   });
@@ -58,6 +61,8 @@ function StudentSignup() {
       email: "",
       phone: "",
       address: "",
+      latitude: null,
+      longitude: null,
       skills: [],
       languages: [],
     });
@@ -169,12 +174,24 @@ function StudentSignup() {
                     <label htmlFor="address" className="form-label">
                       Address *
                     </label>
-                    <input
+                    <AddressAutocomplete
                       id="address"
                       name="address"
                       className={`form-control ${errors.address ? "is-invalid" : ""}`}
                       value={formData.address}
                       onChange={onChange}
+                      onSelect={(formatted, place) => {
+                        const lat = place?.geometry?.location?.lat?.();
+                        const lng = place?.geometry?.location?.lng?.();
+                        setFormData((prev) => ({
+                          ...prev,
+                          address: formatted,
+                          latitude: lat ?? prev.latitude,
+                          longitude: lng ?? prev.longitude,
+                        }));
+                      }}
+                      placeholder="Start typing an address"
+                      error={errors.address}
                     />
                     {errors.address && <div className="invalid-feedback">{errors.address}</div>}
                   </div>
