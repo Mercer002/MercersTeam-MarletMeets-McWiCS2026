@@ -218,3 +218,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignore Environment Variables (Security Risk!)
+.env
+.env.local
+.env.*
+
+# Ignore Python specific
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Ignore Node/React specific (Huge folders!)
+node_modules/
+dist/
+build/
+.DS_Store
