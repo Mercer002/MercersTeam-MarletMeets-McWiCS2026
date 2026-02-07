@@ -61,3 +61,30 @@ def execute_query(query, params=None, fetch_one=False, commit=False):
         release_db_connection(conn)
         
     return result
+
+def create_student(data):
+    query = """
+    INSERT INTO students (
+        first_name, last_name, mcgill_email, phone, 
+        address, latitude, longitude, 
+        skills, languages
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    RETURNING student_id, first_name, mcgill_email;
+    """
+    
+    # We use .get() to safely extract data (avoids crashes if fields are missing)
+    params = (
+        data.get('first_name'),
+        data.get('last_name'),
+        data.get('email'),
+        data.get('phone'),
+        data.get('address'),
+        data.get('latitude'),
+        data.get('longitude'),
+        data.get('skills', []),    # Default to empty list [] if missing
+        data.get('languages', [])  # Default to empty list [] if missing
+    )
+    
+    result = execute_query(query, params, commit=True, fetch_one=True)
+    return result
