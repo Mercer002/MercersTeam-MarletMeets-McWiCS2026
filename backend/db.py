@@ -31,36 +31,39 @@ def get_db_connection():
 def release_db_connection(conn):
     connection_pool.putconn(conn)
 
-
-def execute_query(query, params=None, fetch_one=False, commit=False):
+def execute_query(query, params=None, commit=False, fetch_one=False, fetch_all=False):
     conn = get_db_connection()
-    result = None
+    if not conn:
+        return None
     
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(query, params)
+        cursor.execute(query, params)
+        
+        if commit:
+            conn.commit()
+            return None  # Commit actions usually don't return data (unless RETURNING is used)
             
-            if commit:
-                conn.commit()
-                try:
-                    result = cur.fetchone() 
-                except psycopg2.ProgrammingError:
-                    result = {"status": "success"}
-            else:
-                if fetch_one:
-                    result = cur.fetchone()
-                else:
-                    result = cur.fetchall()
-                    
+        if fetch_one:
+            return cursor.fetchone()
+            
+        if fetch_all:
+            return cursor.fetchall()
+            
+        return None
+        
     except Exception as e:
-        conn.rollback()
-        print(f"❌ Query Error: {e}")
-        raise e
+        print(f"❌ Database Error: {e}")
+        return None
         
     finally:
-        release_db_connection(conn)
-        
-    return result
+        # 1. Close the cursor
+        if cursor:
+            cursor.close()
+            
+        # 2. Put the connection back in the pool 
+        if conn:
+            connection_pool.putconn(conn)
 
 def create_student(data):
     query = """
@@ -120,3 +123,12 @@ def create_senior(data):
     
     result = execute_query(query, params, commit=True, fetch_one=True)
     return result
+
+def get_senior_by_id(senior_id):
+    query = "SELECT * FROM seniors WHERE senior_id = %s;"
+    result = execute_query(query, (senior_id,), fetch_one=True)
+    return result
+
+def get_all_students():
+    query = "SELECT * FROM students;"
+    return execute_query(query, fetch_all=True)
