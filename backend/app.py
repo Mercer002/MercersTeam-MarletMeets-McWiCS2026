@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students
+from db import execute_query, create_student, create_senior, get_senior_by_id, get_all_students, create_session
 from matching import MatchingEngine
 
 app = Flask(__name__)
@@ -99,6 +99,30 @@ def get_matches(senior_id):
         "senior": senior['first_name'],
         "matches": matches
     })
+
+@app.route('/api/sessions', methods=['POST'])
+def create_session_endpoint():
+    data = request.get_json()
+    
+    # 1. Validation
+    # We strictly check for the fields mentioned in the ticket
+    required_fields = ['senior_id', 'student_id', 'task_type']
+    missing = [field for field in required_fields if field not in data]
+    
+    if missing:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    # 2. Save to DB
+    try:
+        new_session = create_session(data)
+        return jsonify({
+            "message": "Session created successfully!", 
+            "session_id": new_session['session_id'],
+            "status": new_session['status']
+        }), 201
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
