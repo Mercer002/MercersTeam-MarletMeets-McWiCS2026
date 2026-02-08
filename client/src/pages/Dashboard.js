@@ -49,7 +49,7 @@ function Dashboard() {
     <section className="dashboard">
       <div className="dashboard__header">
         <div>
-          <h2>Dashboard</h2>
+          <h2>Dashboard 📊</h2>
           <p className="dashboard__subtext">
             Live snapshot of volunteer activity and recent sessions.
           </p>

@@ -461,6 +461,7 @@ def student_selection():
     return jsonify({
         "selections": serialize_rows(selections),
         "student_phone": student.get("phone") if student else None,
+        "student_address": student.get("address") if student else None,
         "student_location": {
             "latitude": student.get("latitude"),
             "longitude": student.get("longitude"),
@@ -555,6 +556,60 @@ def student_deselect(senior_id):
         commit=True,
     )
     return jsonify({"message": "Senior deselected."}), 200
+
+
+@app.route('/api/student/map-data', methods=['GET'])
+def student_map_data():
+    user = get_current_user()
+    if not user or user.get("role") != "student":
+        return jsonify({"error": "Unauthorized."}), 401
+
+    student = execute_query(
+        "SELECT student_id, first_name, last_name, address, latitude, longitude FROM students WHERE student_id = %s;",
+        (user["student_id"],),
+        fetch_one=True,
+    )
+
+    seniors = execute_query(
+        """
+        SELECT s.senior_id, s.first_name, s.last_name, s.address, s.latitude, s.longitude
+        FROM matches m
+        JOIN seniors s ON m.senior_id = s.senior_id
+        WHERE m.student_id = %s AND m.status = 'selected'
+        ORDER BY m.created_at DESC;
+        """,
+        (user["student_id"],),
+        fetch_all=True,
+    )
+
+    # Attempt server-side geocode if coordinates are missing
+    if student and (student.get("latitude") is None or student.get("longitude") is None):
+        lat, lng, geo_err = geocode_address(student.get("address"))
+        if lat is not None and lng is not None:
+            execute_query(
+                "UPDATE students SET latitude = %s, longitude = %s WHERE student_id = %s;",
+                (lat, lng, user["student_id"]),
+                commit=True,
+            )
+            student["latitude"] = lat
+            student["longitude"] = lng
+
+    for senior in seniors or []:
+        if senior.get("latitude") is None or senior.get("longitude") is None:
+            lat, lng, geo_err = geocode_address(senior.get("address"))
+            if lat is not None and lng is not None:
+                execute_query(
+                    "UPDATE seniors SET latitude = %s, longitude = %s WHERE senior_id = %s;",
+                    (lat, lng, senior.get("senior_id")),
+                    commit=True,
+                )
+                senior["latitude"] = lat
+                senior["longitude"] = lng
+
+    return jsonify({
+        "student": serialize_row(student),
+        "seniors": serialize_rows(seniors),
+    })
 
 
 @app.route('/api/senior/tasks', methods=['GET', 'POST'])

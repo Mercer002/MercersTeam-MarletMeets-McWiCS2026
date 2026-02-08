@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 import Dashboard from "./Dashboard";
+import { useGoogleMaps } from "../components/GoogleMapsProvider";
 import DashboardMap from "./DashboardMap";
-import { fetchSeniorNotifications, fetchStudentSelection } from "../services/api";
+import {
+  fetchSeniorNotifications,
+  fetchStudentMapData,
+  fetchStudentSelection,
+} from "../services/api";
+import { formatPhone } from "../utils/formatPhone";
 
 function RoleDashboard() {
   const { user } = useAuth();
@@ -11,6 +17,7 @@ function RoleDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [seniorPhone, setSeniorPhone] = useState("");
   const [mapData, setMapData] = useState({ students: [], seniors: [] });
+  const { isLoaded } = useGoogleMaps();
 
   useEffect(() => {
     let active = true;
@@ -19,31 +26,88 @@ function RoleDashboard() {
       if (!active) return;
       setSelections(data.selections || []);
       setStudentPhone(data.student_phone || "");
-      if (data.selections?.length) {
-        const seniors = (data.selections || [])
-          .filter((sel) => sel.latitude && sel.longitude)
-          .map((sel) => ({
-            senior_id: sel.senior_id,
-            first_name: sel.first_name,
-            last_name: sel.last_name,
-            latitude: Number(sel.latitude),
-            longitude: Number(sel.longitude),
-          }));
-        const students = data.student_location?.latitude && data.student_location?.longitude
-          ? [
+      if (!data.selections?.length) {
+        setMapData({ students: [], seniors: [] });
+        return;
+      }
+
+      const mapPayload = await fetchStudentMapData();
+      if (!active) return;
+      let seniors = (mapPayload.seniors || [])
+        .filter((s) => s.latitude && s.longitude)
+        .map((s) => ({
+          senior_id: s.senior_id,
+          first_name: s.first_name,
+          last_name: s.last_name,
+          latitude: Number(s.latitude),
+          longitude: Number(s.longitude),
+          address: s.address,
+        }));
+      let students = [];
+      if (mapPayload.student?.latitude && mapPayload.student?.longitude) {
+        students = [
+          {
+            student_id: "me",
+            first_name: "You",
+            last_name: "",
+            latitude: Number(mapPayload.student.latitude),
+            longitude: Number(mapPayload.student.longitude),
+          },
+        ];
+      }
+
+      if (isLoaded && typeof window !== "undefined" && window.google) {
+        const geocoder = new window.google.maps.Geocoder();
+        if (seniors.length === 0) {
+          const results = await Promise.all(
+            (mapPayload.seniors || []).map(
+              (sel) =>
+                new Promise((resolve) => {
+                  if (!sel.address) return resolve(null);
+                  geocoder.geocode({ address: sel.address }, (res, status) => {
+                    if (status === "OK" && res[0]?.geometry?.location) {
+                      const loc = res[0].geometry.location;
+                      resolve({
+                        senior_id: sel.senior_id,
+                        first_name: sel.first_name,
+                        last_name: sel.last_name,
+                        latitude: loc.lat(),
+                        longitude: loc.lng(),
+                      });
+                    } else {
+                      resolve(null);
+                    }
+                  });
+                })
+            )
+          );
+          seniors = results.filter(Boolean);
+        }
+        if (students.length === 0 && mapPayload.student?.address) {
+          const studentCoords = await new Promise((resolve) => {
+            geocoder.geocode({ address: mapPayload.student.address }, (res, status) => {
+              if (status === "OK" && res[0]?.geometry?.location) {
+                const loc = res[0].geometry.location;
+                resolve({ latitude: loc.lat(), longitude: loc.lng() });
+              } else {
+                resolve(null);
+              }
+            });
+          });
+          if (studentCoords) {
+            students = [
               {
                 student_id: "me",
                 first_name: "You",
                 last_name: "",
-                latitude: Number(data.student_location.latitude),
-                longitude: Number(data.student_location.longitude),
+                latitude: studentCoords.latitude,
+                longitude: studentCoords.longitude,
               },
-            ]
-          : [];
-        setMapData({ students, seniors });
-      } else {
-        setMapData({ students: [], seniors: [] });
+            ];
+          }
+        }
       }
+      setMapData({ students, seniors });
     };
     const loadSenior = async () => {
       const data = await fetchSeniorNotifications();
@@ -73,14 +137,14 @@ function RoleDashboard() {
       if (intervalId) clearInterval(intervalId);
       window.removeEventListener("selection-updated", handleSelectionUpdate);
     };
-  }, [user]);
+  }, [user, isLoaded]);
 
   if (user?.role === "admin") return <Dashboard />;
 
   if (user?.role === "student") {
     return (
       <section className="student-dashboard">
-        <h2>Student Dashboard</h2>
+        <h2>Student Dashboard 🗺️</h2>
         {selections.length === 0 ? (
           <p>Select a senior from Home to unlock contact details.</p>
         ) : (
@@ -90,7 +154,7 @@ function RoleDashboard() {
                 <h3>
                   {selection.first_name} {selection.last_name}
                 </h3>
-                <p>Senior phone: {selection.phone}</p>
+                <p>Senior phone: {formatPhone(selection.phone)}</p>
               </div>
             ))}
           </div>
@@ -107,7 +171,7 @@ function RoleDashboard() {
   if (user?.role === "senior") {
     return (
       <section className="senior-home">
-        <h2>Senior Dashboard</h2>
+        <h2>Senior Dashboard 👋</h2>
         {notifications.length === 0 ? (
           <p>No student selections yet.</p>
         ) : (
@@ -117,8 +181,8 @@ function RoleDashboard() {
                 <h3>
                   {note.first_name} {note.last_name} selected you
                 </h3>
-                <p>Student phone: {note.student_phone}</p>
-                <p>Your phone: {seniorPhone || "Not available"}</p>
+                <p>Student phone: {formatPhone(note.student_phone)}</p>
+                <p>Your phone: {formatPhone(seniorPhone) || "Not available"}</p>
               </div>
             ))}
           </div>
