@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createSession, getMatchesForSenior, listSeniors } from "../services/api";
+import { createSession, fetchAdminOverview, getMatchesForSenior, listSeniors } from "../services/api";
 
 function AdminPanel() {
   const [seniors, setSeniors] = useState([]);
@@ -7,11 +7,15 @@ function AdminPanel() {
   const [loadingSeniorId, setLoadingSeniorId] = useState(null);
   const [statusBySenior, setStatusBySenior] = useState({});
   const [error, setError] = useState("");
+  const [overview, setOverview] = useState(null);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
+        const overviewData = await fetchAdminOverview();
+        if (!active) return;
+        setOverview(overviewData);
         const data = await listSeniors();
         if (!active) return;
         setSeniors(data.seniors || []);
@@ -59,9 +63,30 @@ function AdminPanel() {
   return (
     <section className="container">
       <h2>Admin Panel</h2>
-      <p>View seniors and find top student matches.</p>
+      <p>View all users, tasks, and manage matches manually.</p>
 
       {error && <div className="status error">{error}</div>}
+
+      {overview && (
+        <div className="dashboard__stats">
+          <div className="stat-card">
+            <p>Total Students</p>
+            <h3>{overview.students?.length ?? 0}</h3>
+          </div>
+          <div className="stat-card">
+            <p>Total Seniors</p>
+            <h3>{overview.seniors?.length ?? 0}</h3>
+          </div>
+          <div className="stat-card">
+            <p>Total Tasks</p>
+            <h3>{overview.tasks?.length ?? 0}</h3>
+          </div>
+          <div className="stat-card">
+            <p>Total Sessions</p>
+            <h3>{overview.sessions?.length ?? 0}</h3>
+          </div>
+        </div>
+      )}
 
       <div className="admin-list">
         {seniors.map((senior) => (

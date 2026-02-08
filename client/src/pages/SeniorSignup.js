@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
-import { createSenior } from "../services/api";
+import { useNavigate } from "react-router-dom";
 import AddressAutocomplete from "../components/AddressAutocomplete";
-
-const NEEDS = ["tech_help", "groceries", "transport", "companionship", "household_help"];
-const LANGUAGES = ["English", "French", "Mandarin", "Arabic", "Spanish"];
+import { useAuth } from "../components/AuthProvider";
 
 function SeniorSignup() {
   const [formData, setFormData] = useState({
@@ -14,8 +12,7 @@ function SeniorSignup() {
     address: "",
     latitude: null,
     longitude: null,
-    needs: [],
-    language: "",
+    password: "",
   });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState({ type: "idle", message: "" });
@@ -27,15 +24,8 @@ function SeniorSignup() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const toggleNeed = (need) => {
-    setFormData((prev) => {
-      const nextNeeds = prev.needs.includes(need)
-        ? prev.needs.filter((item) => item !== need)
-        : [...prev.needs, need];
-
-      return { ...prev, needs: nextNeeds };
-    });
-  };
+  const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const validate = () => {
     const nextErrors = {};
@@ -47,8 +37,7 @@ function SeniorSignup() {
     if (formData.email && !emailRegex.test(formData.email)) nextErrors.email = "Enter a valid email.";
     if (!formData.phone.trim()) nextErrors.phone = "Phone is required.";
     if (!formData.address.trim()) nextErrors.address = "Address is required.";
-    if (formData.needs.length === 0) nextErrors.needs = "Select at least one need.";
-    if (!formData.language) nextErrors.language = "Select a preferred language.";
+    if (!formData.password.trim()) nextErrors.password = "Password is required.";
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -63,8 +52,7 @@ function SeniorSignup() {
       address: "",
       latitude: null,
       longitude: null,
-      needs: [],
-      language: "",
+      password: "",
     });
   };
 
@@ -81,19 +69,16 @@ function SeniorSignup() {
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         address: formData.address.trim(),
-        needs: formData.needs,
-        languages: formData.language ? [formData.language] : [],
         latitude: formData.latitude,
         longitude: formData.longitude,
+        password: formData.password,
       };
 
-      const response = await createSenior(payload);
-      setStatus({
-        type: "success",
-        message: `Senior registered${response.senior_id ? ` (ID: ${response.senior_id})` : ""}.`,
-      });
+      await signup("senior", payload);
+      setStatus({ type: "success", message: "Senior account created." });
       setErrors({});
       resetForm();
+      navigate("/senior/home");
     } catch (error) {
       const apiMessage =
         error?.response?.data?.error ||
@@ -174,24 +159,18 @@ function SeniorSignup() {
                   </div>
 
                   <div className="col-md-6">
-                    <label htmlFor="language" className="form-label">
-                      Preferred Language *
+                    <label htmlFor="password" className="form-label">
+                      Password *
                     </label>
-                    <select
-                      id="language"
-                      name="language"
-                      className={`form-select ${errors.language ? "is-invalid" : ""}`}
-                      value={formData.language}
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      className={`form-control ${errors.password ? "is-invalid" : ""}`}
+                      value={formData.password}
                       onChange={onChange}
-                    >
-                      <option value="">Select one</option>
-                      {LANGUAGES.map((language) => (
-                        <option key={language} value={language}>
-                          {language}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.language && <div className="invalid-feedback">{errors.language}</div>}
+                    />
+                    {errors.password && <div className="invalid-feedback">{errors.password}</div>}
                   </div>
 
                   <div className="col-12">
@@ -220,26 +199,6 @@ function SeniorSignup() {
                     {errors.address && <div className="invalid-feedback">{errors.address}</div>}
                   </div>
 
-                  <div className="col-12">
-                    <label className="form-label">Needs *</label>
-                    <div className="d-flex flex-wrap gap-3">
-                      {NEEDS.map((need) => (
-                        <div className="form-check" key={need}>
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            id={`need-${need}`}
-                            checked={formData.needs.includes(need)}
-                            onChange={() => toggleNeed(need)}
-                          />
-                          <label className="form-check-label" htmlFor={`need-${need}`}>
-                            {need.replace("_", " ")}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    {errors.needs && <div className="text-danger small mt-1">{errors.needs}</div>}
-                  </div>
                 </div>
 
                 <div className="d-flex align-items-center gap-3 mt-4">
