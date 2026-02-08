@@ -88,6 +88,11 @@ export async function fetchStudentSelection() {
   return response.data;
 }
 
+export async function fetchStudentMapData() {
+  const response = await api.get("/student/map-data");
+  return response.data;
+}
+
 export async function selectSenior(payload) {
   const response = await api.post("/student/select", payload);
   return response.data;

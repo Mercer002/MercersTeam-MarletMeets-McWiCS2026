@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../components/AuthProvider";
 import {
@@ -91,7 +92,7 @@ function StudentHome() {
     <section className="student-home">
       <header className="student-home__header">
         <div>
-          <h2>Student Home</h2>
+          <h2>Student Home 🤝</h2>
           <p>Find seniors who match your skills and location.</p>
         </div>
         <button className="btn-secondary" onClick={() => setShowPrefs((prev) => !prev)}>
@@ -168,9 +169,10 @@ function StudentHome() {
         </div>
       )}
 
-      {confirmOpen && pendingSenior && (
-        <div className="modal-backdrop">
-          <div className="modal">
+      {confirmOpen && pendingSenior &&
+        createPortal(
+          <div className="mm-modal-backdrop">
+            <div className="mm-modal">
             <h3>{confirmMode === "select" ? "Confirm Selection" : "Remove Selection"}</h3>
             <p>
               {confirmMode === "select"
@@ -223,9 +225,10 @@ function StudentHome() {
                 Confirm
               </button>
             </div>
-          </div>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body
+        )}
     </section>
   );
 }

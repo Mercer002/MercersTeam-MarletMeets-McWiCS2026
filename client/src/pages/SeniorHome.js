@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 import { createSeniorTask, deleteSeniorTask, fetchSeniorNotifications, fetchSeniorTasks } from "../services/api";
+import { formatPhone } from "../utils/formatPhone";
 
 function SeniorHome() {
   const [tasks, setTasks] = useState([]);
@@ -64,7 +65,7 @@ function SeniorHome() {
     <section className="senior-home">
       <header className="senior-home__header">
         <div>
-          <h2>Senior Home</h2>
+          <h2>Senior Home 🌿</h2>
           <p>Add tasks you want help with.</p>
         </div>
         <button className="btn-secondary" onClick={addTask}>
@@ -87,7 +88,7 @@ function SeniorHome() {
               <h3>
                 {note.first_name} {note.last_name} selected you
               </h3>
-              <p>Student phone: {note.student_phone}</p>
+                <p>Student phone: {formatPhone(note.student_phone)}</p>
             </div>
           ))}
         </div>

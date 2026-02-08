@@ -62,7 +62,7 @@ function AdminPanel() {
 
   return (
     <section className="container">
-      <h2>Admin Panel</h2>
+      <h2>Admin Panel 🛠️</h2>
       <p>View all users, tasks, and manage matches manually.</p>
 
       {error && <div className="status error">{error}</div>}
