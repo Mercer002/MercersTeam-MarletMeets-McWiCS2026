@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
-import { createStudent } from "../services/api";
+import { useNavigate } from "react-router-dom";
 import AddressAutocomplete from "../components/AddressAutocomplete";
-
-const SKILLS = ["tech_support", "groceries", "companionship", "errands", "translation"];
-const LANGUAGES = ["English", "French", "Mandarin", "Arabic", "Spanish"];
+import { useAuth } from "../components/AuthProvider";
 
 function StudentSignup() {
   const [formData, setFormData] = useState({
@@ -14,23 +12,15 @@ function StudentSignup() {
     address: "",
     latitude: null,
     longitude: null,
-    skills: [],
-    languages: [],
+    password: "",
   });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState({ type: "idle", message: "" });
 
   const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
 
-  const toggleArrayValue = (field, value) => {
-    setFormData((prev) => {
-      const nextValues = prev[field].includes(value)
-        ? prev[field].filter((item) => item !== value)
-        : [...prev[field], value];
-
-      return { ...prev, [field]: nextValues };
-    });
-  };
+  const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const onChange = (event) => {
     const { name, value } = event.target;
@@ -47,8 +37,7 @@ function StudentSignup() {
     if (formData.email && !emailRegex.test(formData.email)) nextErrors.email = "Enter a valid email.";
     if (!formData.phone.trim()) nextErrors.phone = "Phone is required.";
     if (!formData.address.trim()) nextErrors.address = "Address is required.";
-    if (formData.skills.length === 0) nextErrors.skills = "Select at least one skill.";
-    if (formData.languages.length === 0) nextErrors.languages = "Select at least one language.";
+    if (!formData.password.trim()) nextErrors.password = "Password is required.";
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -63,8 +52,7 @@ function StudentSignup() {
       address: "",
       latitude: null,
       longitude: null,
-      skills: [],
-      languages: [],
+      password: "",
     });
   };
 
@@ -76,21 +64,21 @@ function StudentSignup() {
 
     try {
       const payload = {
-        ...formData,
         email: formData.email.trim().toLowerCase(),
+        password: formData.password,
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         phone: formData.phone.trim(),
         address: formData.address.trim(),
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       };
 
-      const response = await createStudent(payload);
-      setStatus({
-        type: "success",
-        message: `Student registered${response.student_id ? ` (ID: ${response.student_id})` : ""}.`,
-      });
+      await signup("student", payload);
+      setStatus({ type: "success", message: "Student account created." });
       setErrors({});
       resetForm();
+      navigate("/student/home");
     } catch (error) {
       const apiMessage =
         error?.response?.data?.error ||
@@ -170,6 +158,21 @@ function StudentSignup() {
                     {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
                   </div>
 
+                  <div className="col-md-6">
+                    <label htmlFor="password" className="form-label">
+                      Password *
+                    </label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      className={`form-control ${errors.password ? "is-invalid" : ""}`}
+                      value={formData.password}
+                      onChange={onChange}
+                    />
+                    {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                  </div>
+
                   <div className="col-12">
                     <label htmlFor="address" className="form-label">
                       Address *
@@ -196,49 +199,6 @@ function StudentSignup() {
                     {errors.address && <div className="invalid-feedback">{errors.address}</div>}
                   </div>
 
-                  <div className="col-12">
-                    <label className="form-label">Skills *</label>
-                    <div className="d-flex flex-wrap gap-3">
-                      {SKILLS.map((skill) => (
-                        <div className="form-check" key={skill}>
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            id={`skill-${skill}`}
-                            checked={formData.skills.includes(skill)}
-                            onChange={() => toggleArrayValue("skills", skill)}
-                          />
-                          <label className="form-check-label" htmlFor={`skill-${skill}`}>
-                            {skill.replace("_", " ")}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    {errors.skills && <div className="text-danger small mt-1">{errors.skills}</div>}
-                  </div>
-
-                  <div className="col-12">
-                    <label className="form-label">Languages *</label>
-                    <div className="d-flex flex-wrap gap-3">
-                      {LANGUAGES.map((language) => (
-                        <div className="form-check" key={language}>
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            id={`lang-${language}`}
-                            checked={formData.languages.includes(language)}
-                            onChange={() => toggleArrayValue("languages", language)}
-                          />
-                          <label className="form-check-label" htmlFor={`lang-${language}`}>
-                            {language}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    {errors.languages && (
-                      <div className="text-danger small mt-1">{errors.languages}</div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="d-flex align-items-center gap-3 mt-4">

@@ -32,15 +32,24 @@ export default function DashboardMap({ students = [], seniors = [] }) {
   if (loadError) return <div className="status error">Error loading maps.</div>;
   if (!isLoaded) return <div className="status">Loading map...</div>;
 
+  const safeStudents = students.filter((s) => Number.isFinite(s.latitude) && Number.isFinite(s.longitude));
+  const safeSeniors = seniors.filter((s) => Number.isFinite(s.latitude) && Number.isFinite(s.longitude));
+  const mapCenter =
+    safeStudents[0] ||
+    safeSeniors[0] || {
+      latitude: center.lat,
+      longitude: center.lng,
+    };
+
   return (
     <div style={{ position: "relative" }}>
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={12}
-        center={center}
+        center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
         options={options}
       >
-        {students.map((student) => (
+        {safeStudents.map((student) => (
           <Marker
             key={`student-${student.student_id}`}
             position={{ lat: student.latitude, lng: student.longitude }}
@@ -49,7 +58,7 @@ export default function DashboardMap({ students = [], seniors = [] }) {
           />
         ))}
 
-        {seniors.map((senior) => (
+        {safeSeniors.map((senior) => (
           <Marker
             key={`senior-${senior.senior_id}`}
             position={{ lat: senior.latitude, lng: senior.longitude }}
