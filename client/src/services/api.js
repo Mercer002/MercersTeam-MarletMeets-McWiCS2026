@@ -108,6 +108,16 @@ export async function fetchSeniorTasks() {
   return response.data;
 }
 
+export async function fetchSeniorProfile() {
+  const response = await api.get("/senior/profile");
+  return response.data;
+}
+
+export async function updateSeniorProfile(payload) {
+  const response = await api.post("/senior/profile", payload);
+  return response.data;
+}
+
 export async function createSeniorTask(payload) {
   const response = await api.post("/senior/tasks", payload);
   return response.data;

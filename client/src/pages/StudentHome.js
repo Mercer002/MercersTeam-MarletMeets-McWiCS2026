@@ -11,7 +11,13 @@ import {
   updateStudentProfile,
 } from "../services/api";
 
-const SKILLS = ["tech_support", "groceries", "companionship", "errands", "translation"];
+const SKILLS = [
+  { value: "tech_support", label: "tech support" },
+  { value: "groceries", label: "groceries" },
+  { value: "companionship", label: "companionship" },
+  { value: "errands", label: "errands" },
+  { value: "translation", label: "translation" },
+];
 const LANGUAGES = ["English", "French", "Mandarin", "Arabic", "Spanish"];
 
 function StudentHome() {
@@ -22,9 +28,17 @@ function StudentHome() {
   const [confirmMode, setConfirmMode] = useState("select");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
+  const [customSkill, setCustomSkill] = useState("");
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+
+  const formatLabel = (value) =>
+    value
+      .replace(/_/g, " ")
+      .split(" ")
+      .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ""))
+      .join(" ");
 
   useEffect(() => {
     let active = true;
@@ -65,6 +79,28 @@ function StudentHome() {
     });
   };
 
+  const addCustomSkill = () => {
+    const raw = customSkill.trim();
+    if (!raw) return;
+    const normalized = raw.toLowerCase().replace(/\s+/g, "_");
+    setProfile((prev) => {
+      const next = prev.skills?.includes(normalized)
+        ? prev.skills
+        : [...(prev.skills || []), normalized];
+      return { ...prev, skills: next };
+    });
+    setCustomSkill("");
+  };
+
+  const removeCustomSkill = (value) => {
+    const defaultValues = SKILLS.map((skill) => skill.value);
+    if (defaultValues.includes(value)) return;
+    setProfile((prev) => {
+      const next = (prev.skills || []).filter((item) => item !== value);
+      return { ...prev, skills: next };
+    });
+  };
+
   const savePrefs = async () => {
     if ((profile.skills || []).length === 0) {
       setStatus({ type: "error", message: "Select at least one skill first." });
@@ -96,24 +132,64 @@ function StudentHome() {
           <p>Find seniors who match your skills and location.</p>
         </div>
         <button className="btn-secondary" onClick={() => setShowPrefs((prev) => !prev)}>
-          + Add Skills/Languages
+          {showPrefs ? "Close Skills/Languages" : "+ Skills/Languages"}
         </button>
       </header>
 
       {showPrefs && (
         <div className="pref-card">
-          <h3>Your Skills</h3>
+          <h3>Skills/Languages</h3>
+          <div className="skill-input">
+            <input
+              value={customSkill}
+              onChange={(e) => setCustomSkill(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomSkill();
+                }
+              }}
+              placeholder="Add a skill (e.g., pet care)"
+            />
+            <button className="btn-secondary" type="button" onClick={addCustomSkill}>
+              Add Skill
+            </button>
+          </div>
           <div className="checkbox-group">
-            {SKILLS.map((skill) => (
-              <label key={skill} className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={profile.skills?.includes(skill)}
-                  onChange={() => toggleListValue("skills", skill)}
-                />
-                <span>{skill.replace("_", " ")}</span>
-              </label>
-            ))}
+            {(() => {
+              const defaultValues = SKILLS.map((skill) => skill.value);
+              const customSkills = (profile.skills || []).filter(
+                (value) => !defaultValues.includes(value)
+              );
+              return [
+                ...SKILLS.map((skill) => ({ ...skill, isCustom: false })),
+                ...customSkills.map((value) => ({
+                  value,
+                  label: formatLabel(value),
+                  isCustom: true,
+                })),
+              ].map((skill) => (
+                <div key={skill.value} className="checkbox-row checkbox-row--custom">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={profile.skills?.includes(skill.value)}
+                      onChange={() => toggleListValue("skills", skill.value)}
+                    />
+                    <span>{formatLabel(skill.label)}</span>
+                  </label>
+                  {skill.isCustom && (
+                    <button
+                      type="button"
+                      className="skill-remove"
+                      onClick={() => removeCustomSkill(skill.value)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ));
+            })()}
           </div>
 
           <h3>Languages</h3>
@@ -161,7 +237,10 @@ function StudentHome() {
                 <p className="match-meta">Score: {match.total_score}</p>
                 <p className="match-meta">Distance: {match.distance_km} km</p>
                 <p className="match-meta">
-                  Common skills: {(match.common_skills || []).join(", ") || "None"}
+                  Common skills:{" "}
+                  {(match.common_skills || []).length
+                    ? match.common_skills.map((skill) => formatLabel(skill)).join(", ")
+                    : "None"}
                 </p>
               </article>
             ))

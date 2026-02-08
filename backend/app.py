@@ -857,6 +857,45 @@ def register_senior():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/senior/profile', methods=['GET', 'POST'])
+def senior_profile():
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    if user.get("role") != "senior":
+        return jsonify({"error": "Forbidden"}), 403
+    senior_id = user.get("senior_id")
+    if not senior_id:
+        return jsonify({"error": "Senior profile not linked"}), 400
+
+    if request.method == 'GET':
+        senior = execute_query(
+            "SELECT senior_id, first_name, last_name, email, phone, address, languages FROM seniors WHERE senior_id = %s;",
+            (senior_id,),
+            fetch_one=True,
+        )
+        return jsonify({"senior": serialize_row(senior)})
+
+    data = request.get_json() or {}
+    languages = data.get("languages")
+    if languages is None:
+        return jsonify({"error": "Missing languages"}), 400
+    if not isinstance(languages, list):
+        return jsonify({"error": "Languages must be a list"}), 400
+
+    execute_query(
+        "UPDATE seniors SET languages = %s WHERE senior_id = %s;",
+        (languages, senior_id),
+        commit=True,
+    )
+    senior = execute_query(
+        "SELECT senior_id, first_name, last_name, email, phone, address, languages FROM seniors WHERE senior_id = %s;",
+        (senior_id,),
+        fetch_one=True,
+    )
+    return jsonify({"message": "Profile updated", "senior": serialize_row(senior)})
+
+
 @app.route('/api/seniors', methods=['GET'])
 def list_seniors():
     seniors = execute_query(
