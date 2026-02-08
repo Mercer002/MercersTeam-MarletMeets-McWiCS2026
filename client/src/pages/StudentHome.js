@@ -128,7 +128,7 @@ function StudentHome() {
     <section className="student-home">
       <header className="student-home__header">
         <div>
-          <h2>Student Home 🤝</h2>
+          <h2>Matching Requests 🤝</h2>
           <p>Find seniors who match your skills and location.</p>
         </div>
         <button className="btn-secondary" onClick={() => setShowPrefs((prev) => !prev)}>
@@ -237,7 +237,7 @@ function StudentHome() {
                 <p className="match-meta">Score: {match.total_score}</p>
                 <p className="match-meta">Distance: {match.distance_km} km</p>
                 <p className="match-meta">
-                  Common skills:{" "}
+                  Matching Requests:{" "}
                   {(match.common_skills || []).length
                     ? match.common_skills.map((skill) => formatLabel(skill)).join(", ")
                     : "None"}
